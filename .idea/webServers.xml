@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="5da46fc4-91ce-437a-92ed-9d104f8b23c1" name="raspberrypi">
+        <fileTransfer accessType="SFTP" host="raspberrypi" port="22" sshConfigId="fc7bacfe-2909-4982-9250-14379446b3d4" sshConfig="pi@raspberrypi:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+      <webServer id="d6dc14d8-d256-48de-b2b5-78b4149200aa" name="pizero">
+        <fileTransfer rootFolder="/home/pizero" accessType="SFTP" host="pizero.local" port="22" sshConfigId="7005d7c6-93ff-4e58-8351-7a0dc9912219" sshConfig="pizero@pizero.local:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
