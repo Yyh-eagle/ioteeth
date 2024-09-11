@@ -42,9 +42,8 @@ def position_judge(preposition,cap,Property,IOTDA):
         return 'error'#error表示没有按照提示扫描
 
 #拍摄的核心函数，视频流，关键帧提取
-def Camera(cap,position,numframe,numtime,var_threshold,Property,IOTDA):#最后一个参数实现了关键帧提取
-
-    #初始化部分
+def Camera(cap,position,numframe,numtime,Property,IOTDA):#var_threshold参数实现了关键帧提取
+    #
     mypath = Path() #实例化路径对像
     time.sleep(0.1)# 预热摄像头
 
@@ -56,7 +55,7 @@ def Camera(cap,position,numframe,numtime,var_threshold,Property,IOTDA):#最后�
     print("等待前端命令拍摄……")  # 开始录制
     # 定义关键帧表和阈值   
     key_frames = []
-    threshold = 170 # 阈值可以根据实际情况调整
+    threshold = 190 #阈值可以根据实际情况调整
     #控制变量22
     #Property.opendetect=1
     #fProperty.sendproperty(IOTDA.device)
@@ -143,7 +142,7 @@ def Camera_on(aim_position,picam2,Property,IOTDA):
     NUM_TIME =5#设置每隔多少秒
     mypath =Path()
     #以frame 视频流的方式进行，每隔10帧保存一次
-    x=Camera(picam2,aim_position,NUM_FRAME,NUM_TIME,35,Property,IOTDA)
+    x=Camera(picam2,aim_position,NUM_FRAME,NUM_TIME,Property,IOTDA)
     #小模型 
     if x==0:
         position = Nerual_Detect(mypath,aim_position)
