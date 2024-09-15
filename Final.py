@@ -43,7 +43,7 @@ class Position():
 
 def take_photo(mypath,pos,IOTDA,Property):
    
-    print("拍摄线程启动")
+    #print("拍摄线程启动")
     cap = cv2.VideoCapture(0)#初始化相机
     if not cap.isOpened():
         print("无法识别到相机")
@@ -53,7 +53,7 @@ def take_photo(mypath,pos,IOTDA,Property):
         exit(0)
     #Property.usb = 1
     #Property.sendproperty(IOTDA.device)#上传属性
-    print("摄像头正常，上传属性usb=1")
+    #print("摄像头正常，上传属性usb=1")
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
@@ -67,7 +67,7 @@ def take_photo(mypath,pos,IOTDA,Property):
         if pos.position =='error':
             Property.ifcorrect=0
             Property.sendproperty(IOTDA.device)#上传是否扫描准确
-            print("上传属性ifcorrect=0")
+            #print("上传属性ifcorrect=0")
             print("识别位置信息错误，重新识别")
             pos.position =preposition
             Property.position=pos.position
@@ -82,7 +82,7 @@ def take_photo(mypath,pos,IOTDA,Property):
         else:
             Property.ifcorrect=1#识别结果正确
             Property.sendproperty(IOTDA.device)#上传属性开始扫描的位置
-            print("上传属性ifcorrect=1")
+            #print("上传属性ifcorrect=1")
             if (pos.ifSend ==0):#如果
                 pos.ifSend = 1
             else:
@@ -93,11 +93,11 @@ def take_photo(mypath,pos,IOTDA,Property):
                         print("本次上传结束")
                         break
                 pos.ifSend = 1
-    print("line1 over$$$$$$$$$$$$$$$$$$$$$$$$")
+    #print("line1 over$$$$$$$$$$$$$$$$$$$$$$$$")
 
 
 def obs(mypath,pos,IOTDA,Property):
-    print("云存储线程启动")
+    #print("云存储线程启动")
     obsClient = ObsClient(
         access_key_id='ZGCNBIRERUNYFPZY1JEW',  # 刚刚下载csv文件里面的Access Key Id
         secret_access_key='OzM4hTiyFsOEMZiowqnoIvG2NRF8gUsAZhd4VemX',  # 刚刚下载csv文件里面的Secret Access Key
@@ -151,11 +151,11 @@ def obs(mypath,pos,IOTDA,Property):
         if(pos.ifDelete ==1):
             Delete_file(mypath, str(int(pos.position)+1))#############################################
             pos.ifDelete=0
-            print("停止删除状态")
+            #print("停止删除状态")
         if(pos.ifDelete ==2 ):
             Delete_file(mypath, str(pos.position))#############################################
             pos.ifDelete=0
-            print("停止删除状态")
+            #print("停止删除状态")
         if ind == 'x':
             	break
         if(pos.ifSend ==1):#如果在图像线程说ifsend是1了，就上传对应的图像到云端
@@ -179,7 +179,7 @@ class IOT_property():
         self.position=0
         self.ifcorrect=2# 是否准确
         self.ifsenfover=0
-        self.opendetect=0#0不动，从0-1，开始扫描，从1-0关闭扫描
+        self.opendetect=0#0表示是否可以前端提示扫描
         self.service_property=ServiceProperty()
         
         self.service_property.service_id = "detect"

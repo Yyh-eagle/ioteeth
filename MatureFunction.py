@@ -16,117 +16,119 @@ from datetime import datetime
 
 """
 本文件实现的功能是保存所有在Final中出现的函数
-具体函数包括：
-基础功能部分：
-1：显示图片 Showiamge（）
-2：图片帧构成视频流Camera
-
 """
+#全局变量声明，关键参数调整
+NUM_KEYFRAME = 4 #关键帧的个数
+THRESHOLDDIFF =250#帧差法的阈值
+RESOLUTION_12 = 30 #清晰度指标
+RESOLUTION_3 = 25 #清晰度指标
+NUMTAKEPHOTOS = 7 #帧数：连读多少帧满足要求，可以提示
+NUMDIFF =8 #帧差法的帧差数，这个数越大月容易
 ####################################标准流程函数########################################
 
 #反馈式拍摄引导
 def position_judge(preposition,cap,Property,IOTDA):
 
-   
-   
-    print("###########################33",preposition)
-    position = Camera_on(str(int(preposition)+1),cap,Property,IOTDA)
-    print("this time-------------------------------------------------------------------",position)
-    position_dictionary = {'0':"初始化",'1':"牙齿正面",'2':"下牙上侧",'3':"上牙下侧",'4':'结束指令'}
+    position = Camera_on(str(int(preposition)+1),cap,Property,IOTDA)#根据小模型的识别结果来反馈位置
+    print("this time-------------------------------------------------------------------",position)#指示当前反馈拍摄引导的位置
+    position_dictionary = {'0':"初始化",'1':"牙齿正面",'2':"下牙上侧",'3':"上牙下侧",'4':'结束指令'}#反馈是拍摄引导字典
     
     if int(position) == int(preposition)+1:#如果满足既定的顺序
         print(f"{position_dictionary.get(str(position))}扫描完成，请拍摄{position_dictionary[str(int(position)+1)]}")
         return position
-    else:
+    else:#表示没有按照提示扫描
         print("位置识别错误")
-        return 'error'#error表示没有按照提示扫描
+        return 'error'   
 
 #拍摄的核心函数，视频流，关键帧提取
-def Camera(cap,position,numframe,numtime,Property,IOTDA):#var_threshold参数实现了关键帧提取
-    #
+def Camera(cap,position,Property,IOTDA):#var_threshold参数实现了关键帧提取
+    
     mypath = Path() #实例化路径对像
     time.sleep(0.1)# 预热摄像头
 
     #初始化计数变量
-    frame_count =0
-    start_time =None
-    image_count = 0
+    frame_count =0 #记录帧数
+    start_time =None #初始化记录时间
+    image_count = 0#设定的关键帧数
 
     print("等待前端命令拍摄……")  # 开始录制
     # 定义关键帧表和阈值   
     key_frames = []
-    threshold = 190 #阈值可以根据实际情况调整
-    #控制变量22
-    #Property.opendetect=1
-    #fProperty.sendproperty(IOTDA.device)
-    # 图片流循环
+    threshold = THRESHOLDDIFF #帧差法阈值
+    cnt_opendetect = 0 #这个变量用来记录满足提示的状态
+    cnt_diff = 0 #这个变量也直接表示了进入了多少次循环
+    cnt_tishi = 0
+    # cap循环展示imshow
     while True:
-        value, frame = cap.read()
-        if not value:
-             print("摄像头出现了问题")
+        value, frame = cap.read()#读取图像
+        if not value:#检查图像是否成功读取
+             print("在cap循环中摄像头出现了问题")
              exit(0)
-        # 展示该帧
         
-        cv2.imshow("Frame", frame)
         
-        #键盘功能，在真实的代码中是由物联网平台发布的指令
-        key = IOTDA.c_c.open
+        frame = cv2.flip(frame, 1)
+        cv2.imshow("Frame", frame)# 展示该帧
+        
+        #等待键盘输入或者网页端输入开始
+        key = IOTDA.c_c.open #网页端接受命令
+        k = cv2.waitKey(1) &0xFF #本地空格接受
         # 等待空格键启动
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        if key==1 :
+        if key==1 or k== ord(' ') :
             print("开始录制，并进行清晰度，亮度评判，根据帧差法选择关键帧")
             start_time = time.time()
-            IOTDA.c_c.open=0
-        
+            IOTDA.c_c.open=0#修改回open的默认值
         elif key == 'out':
             exit(0)
-       # 如果计时已开始
+     
         if start_time is not None:
-            # 检查是否超过三个有效的关键帧
-            
-            if len(key_frames)>=3:
-                Property.opendetect=0
-                #Property.sendproperty(IOTDA.device)
+            cnt_diff +=1
+            if len(key_frames)>=NUM_KEYFRAME:# 检查是否超过三个有效的关键帧
+                cv2.destroyAllWindows()
                 return 0
-            
-            # 读取第一帧
-            ret, prev_frame = cap.read()
-            prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
-           
-            
-            
             #关键帧提取:首先根据运动特性进行提取，提取得到三个关键帧后进入下一个口腔位置，每个关键帧的获取都需要经过清晰度和亮度的筛选
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            # 计算帧之间的差异
-            frame_diff = cv2.absdiff(prev_gray, gray)
-            # 应用阈值
-            _, diff_threshold = cv2.threshold(frame_diff, threshold, 255, cv2.THRESH_BINARY)
-            # 检测关键帧
             
-            if np.sum(diff_threshold) >0 and detect(frame,position)!=0:
-                print(position)
-                key_frames.append(frame)
-                cv2.namedWindow('preview')
-                cv2.moveWindow('preview', 100, 900)
-                
-                #对图像的一些处理工作
-                image = cv2.GaussianBlur(frame, (5, 5), 0)  # 对图像进行高斯滤波
-                image = perfect_reflective_white_balance(image)#白平衡处理
-                #image = enhance_contrast(image)
-                
-          
-                print("高斯滤波GAUSS BLUR")
-                print("白平衡处理 WHITE BALANCE")
-                image =Uplight(image)#自适应提亮
-                cv2.imshow("preview",image)
-                #print(mypath.cap_save_path(position,frame_count))
-                cv2.imwrite(mypath.cap_save_path(position,frame_count), image)#保存图像
-                image_count += 1
-            prev_gray = gray
-            frame_count += 1
+            ret, prev_frame = cap.read()
+            if cnt_diff == 1:
+                prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY) # 读取第一帧
+                prev_gray = cv2.flip(prev_gray, 1)#景象翻转
+         
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)#灰度化
+            
+            frame_diff = cv2.absdiff(prev_gray, gray)# 计算帧之间的差异
+            
+            _, diff_threshold = cv2.threshold(frame_diff, threshold, 255, cv2.THRESH_BINARY)# 应用阈值
+		
+            ifdetect = 	detect(frame,position)#清晰度和亮度指标
+            
+            if ifdetect != 0:#若满足清晰度和亮度指标
+                cnt_opendetect +=1#三帧都满足，则容许提示开始拍摄
+                if cnt_opendetect >=NUMTAKEPHOTOS:
+                    #上传属性，进行云通信
+                    if cnt_tishi ==0 :
+                        Property.opendetect = 1
+                        Property.sendproperty(IOTDA.device)
+                        Property.opendetect = 0
+                        cnt_tishi = 1
+                    if np.sum(diff_threshold) >0:# 帧差法    
+                        
+                        key_frames.append(frame) #列表加上关键帧
+                        cv2.namedWindow('preview') #控制展示位置
+                        cv2.moveWindow('preview', 100, 900) #控制展示位置
+		        
+		        #关键帧处理
+                        image = cv2.GaussianBlur(frame, (5, 5), 0) #对图像进行高斯滤波
+                        image = perfect_reflective_white_balance(image)#白平衡处理正常化
+                        image =Uplight(image)#自适应提亮
+                        cv2.imshow("preview",image)
+                        cv2.imwrite(mypath.cap_save_path(position,frame_count), image)#保存图像
+                        image_count += 1#更新
+            if cnt_diff%NUMDIFF ==0:
+                prev_gray = gray#更新灰度图
+                #cv2.imshow("gray",prev_gray)
+            frame_count += 1#更新帧数，方便写入文件名称
 
-    cv2.destroyAllWindows()
 
 #显示图片
 def Showimage(window_name, image):
@@ -138,11 +140,11 @@ def Showimage(window_name, image):
 #返回次数
 def Camera_on(aim_position,picam2,Property,IOTDA):
 
-    NUM_FRAME =5#设置每隔多少帧保存一次
-    NUM_TIME =5#设置每隔多少秒
+    
+
     mypath =Path()
-    #以frame 视频流的方式进行，每隔10帧保存一次
-    x=Camera(picam2,aim_position,NUM_FRAME,NUM_TIME,Property,IOTDA)
+    #以frame 视频流的方式进行
+    x=Camera(picam2,aim_position,Property,IOTDA)
     #小模型 
     if x==0:
         position = Nerual_Detect(mypath,aim_position)
@@ -156,7 +158,9 @@ def Camera_on(aim_position,picam2,Property,IOTDA):
 def detect(image,position):
     if uplight_detect(image)==1 and detective(image,position)==1:
         return 1
-    else: return 0
+    else: 
+        return 0
+        
 #完美反射法白平衡处理
 def perfect_reflective_white_balance(img):
     # 将图像数据类型转换为 float32，以便进行计算
@@ -169,12 +173,6 @@ def perfect_reflective_white_balance(img):
     scaled = np.clip(scaled, 0, 255)  # 限制数值范围避免数据溢出
 
     return scaled.astype(np.uint8)    
-def enhance_contrast(image, alpha=1.15, beta=0):
-    
-    # 将图像数据类型转换为浮点型，然后进行调整
-    adjusted = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
-    
-    return adjusted
 
 #三级提亮图片
 def Uplight(image):
@@ -247,14 +245,14 @@ def detective(image,position):
     image_gray=cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
     imageVar=cv2.Laplacian(image_gray,cv2.CV_64F).var()
     if int(position)!=3:
-        if imageVar>=30:
+        if imageVar>=RESOLUTION_12:
             return 1#清晰度合格
         else: 
             print("清晰度指标为：",imageVar)
             print("清晰度不合格")
             return 0#清晰度不合格
     else:
-        if imageVar>=30:
+        if imageVar>=RESOLUTION_3:
             return 1#清晰度合格
         else: 
             print("清晰度指标为：",imageVar)
@@ -391,7 +389,7 @@ def send_to_server(mypath,position,IOTDA):
 
 ########################################对本地缓存清除操作########################################
 def Delete_file(mypath,position):
-    print("进来的position",position)
+    #print("进来的position",position)
     delete_file(mypath.video_save_path(position))
 
 
@@ -409,7 +407,7 @@ def delete_file(directory):
                 # 如果是目录，则递归调用删除目录中的文件
                 delete_file(filepath)#递归函数，直接实现所有的文件全部删除
             if not os.listdir(directory):
-                print(f"目录 {directory} 现在为空，终止删除操作")
+                #print(f"目录 {directory} 现在为空，终止删除操作")
                 return
         except Exception as e:
             print(f"删除文件 {filepath} 时出错: {e}")
