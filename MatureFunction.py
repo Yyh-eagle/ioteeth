@@ -35,9 +35,11 @@ def position_judge(preposition,cap,Property,IOTDA,pic):
     print("this time-------------------------------------------------------------------",position)#指示当前反馈拍摄引导的位置
     position_dictionary = {'0':"初始化",'1':"牙齿正面",'2':"下牙上侧",'3':"上牙下侧",'4':'结束指令'}#反馈是拍摄引导字典
     
-    if int(position) == int(preposition)+1:#如果满足既定的顺序
-        print(f"{position_dictionary.get(str(position))}扫描完成，请拍摄{position_dictionary[str(int(position)+1)]}")
-        return position
+    #if int(position) == int(preposition)+1:#如果满足既定的顺序
+    if str(position)!='bug':
+        print(f"{position_dictionary.get(str(position))}扫描完成，请拍摄{position_dictionary[str(int(position)+1)]}")\
+        if int(position) != int(preposition)+1:#如果满足既定的顺序
+        return preposition+1
     else:#表示没有按照提示扫描
         print("位置识别错误")
         return 'error'   
@@ -209,7 +211,7 @@ def Uplight(image):
 #亮度检测
 def uplight_detect(img):
  
-   
+    
     # 把图片转换为单通道的灰度图
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # 获取形状以及长宽
@@ -238,8 +240,8 @@ def uplight_detect(img):
           print("过亮")
           return 0
        else:
-          print("过暗")
-          return 0
+          #print("过暗")
+          return 1
     else:
        return 1#亮度正常
 #检测

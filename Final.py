@@ -36,7 +36,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 ############################################################################################################################
-HOST = "192.168.228.198"#得到ip地址
+HOST = "192.168.228.58"#得到ip地址
 
 class Position():
     def __init__(self):

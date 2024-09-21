@@ -28,7 +28,7 @@ class Path(object):
    
 
     def obs_path(self,position):#华为云的存储位置
-        return f'/position{position}/'
+        return f'/Picture/position{position}/'
 
     def obs_frame_path(self,position,iter):
         return f'obs://ioteeth/position{position}/frame{iter}.jpg'
