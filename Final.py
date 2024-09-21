@@ -13,6 +13,10 @@ import traceback
 import threading
 import sys
 import os
+import io
+import struct
+import socket
+import numpy as np
 ##下面这些都是iotda的相关库)
 
 from typing import List
@@ -32,7 +36,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 ############################################################################################################################
-
+HOST = "192.168.228.198"#得到ip地址
 
 class Position():
     def __init__(self):
@@ -43,7 +47,7 @@ class Position():
 
 def take_photo(mypath,pos,IOTDA,Property):
    
-    #print("拍摄线程启动")
+    pic = pic_put()
     cap = cv2.VideoCapture(0)#初始化相机
     if not cap.isOpened():
         print("无法识别到相机")
@@ -54,14 +58,14 @@ def take_photo(mypath,pos,IOTDA,Property):
     #Property.usb = 1
     #Property.sendproperty(IOTDA.device)#上传属性
     #print("摄像头正常，上传属性usb=1")
-
+    #print("拍摄线程启动")
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     while int(pos.position) < 3: #一直到4的时候，才会退出循环，保证程序正常结束
-
+		
         #判断位置
         preposition =pos.position#用preposition保存之前的position值
-        pos.position = position_judge(preposition,cap,Property,IOTDA)##################################
+        pos.position = position_judge(preposition,cap,Property,IOTDA,pic)##################################
         Property.position=pos.position
         #一旦识别失败，提示重新扫描
         if pos.position =='error':
@@ -93,8 +97,9 @@ def take_photo(mypath,pos,IOTDA,Property):
                         print("本次上传结束")
                         break
                 pos.ifSend = 1
-    #print("line1 over$$$$$$$$$$$$$$$$$$$$$$$$")
-
+     
+    print("line1 over$$$$$$$$$$$$$$$$$$$$$$$$")
+    pic.close()
 
 def obs(mypath,pos,IOTDA,Property):
     #print("云存储线程启动")
@@ -192,7 +197,35 @@ class IOT_property():
         device.get_client().report_properties(services)
 #所有的部分只需要修改这里的类然后sendproperty就可以了。
     
-        
+######################################################无线图传####################################################################
+
+class pic_put():
+    def __init__(self):
+        self.h = HOST
+        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.client_socket.connect((self.h, 8000))  #
+        self.connection = self.client_socket.makefile('wb')
+        self.stream = io.BytesIO()
+
+    def upload(self, frame):
+        img_encode = cv2.imencode('.jpg', frame)[1]
+        data_encode = np.array(img_encode)
+        self.stream.write(data_encode)
+        self.connection.write(struct.pack('<L', self.stream.tell()))
+        self.connection.flush()
+        self.stream.seek(0)
+        self.connection.write(self.stream.read())
+        self.stream.seek(0)
+        self.stream.truncate()
+        self.connection.write(struct.pack('<L', 0))
+
+    def close(self):
+        msg = 'exit'
+        self.client_socket.send(msg.encode('utf-8'))
+        self.connection.close()
+        self.client_socket.close()
+
+           
         
 
 
@@ -203,6 +236,7 @@ def main():
     IOTDA = IOTEETH_MQTT()#初始化了device对象
     pos =Position()
     mypath = Path()  # 初始化路径对象
+    
     path="/home/yyh/ioteeth/logtxt/"
     obs_txtpath = os.path.join(path, f'obs_path.txt')
     if os.path.exists(path):

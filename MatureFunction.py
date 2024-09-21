@@ -3,6 +3,7 @@ import cv2
 
 import time
 import os
+
 import subprocess
 from Final_config import Path
 
@@ -18,18 +19,19 @@ from datetime import datetime
 本文件实现的功能是保存所有在Final中出现的函数
 """
 #全局变量声明，关键参数调整
-NUM_KEYFRAME = 4 #关键帧的个数
-THRESHOLDDIFF =250#帧差法的阈值
+NUM_KEYFRAME = 5 #关键帧的个数
+THRESHOLDDIFF =230#帧差法的阈值
 RESOLUTION_12 = 30 #清晰度指标
 RESOLUTION_3 = 25 #清晰度指标
 NUMTAKEPHOTOS = 7 #帧数：连读多少帧满足要求，可以提示
 NUMDIFF =8 #帧差法的帧差数，这个数越大月容易
+
 ####################################标准流程函数########################################
 
 #反馈式拍摄引导
-def position_judge(preposition,cap,Property,IOTDA):
-
-    position = Camera_on(str(int(preposition)+1),cap,Property,IOTDA)#根据小模型的识别结果来反馈位置
+def position_judge(preposition,cap,Property,IOTDA,pic):
+    #print("lalla")
+    position = Camera_on(str(int(preposition)+1),cap,Property,IOTDA,pic)#根据小模型的识别结果来反馈位置
     print("this time-------------------------------------------------------------------",position)#指示当前反馈拍摄引导的位置
     position_dictionary = {'0':"初始化",'1':"牙齿正面",'2':"下牙上侧",'3':"上牙下侧",'4':'结束指令'}#反馈是拍摄引导字典
     
@@ -40,12 +42,27 @@ def position_judge(preposition,cap,Property,IOTDA):
         print("位置识别错误")
         return 'error'   
 
-#拍摄的核心函数，视频流，关键帧提取
-def Camera(cap,position,Property,IOTDA):#var_threshold参数实现了关键帧提取
+
+#返回次数
+def Camera_on(aim_position,picam2,Property,IOTDA,pic):
+    #print("camera_o")
+    mypath =Path()
+    #以frame 视频流的方式进行
+    x=Camera(picam2,aim_position,Property,IOTDA,pic)
+    #小模型 
+    if x==0:
+        position = Nerual_Detect(mypath,aim_position)
+
+    if position =='0':
+        position ='bug'
+    return str(position)
     
+#拍摄的核心函数，视频流，关键帧提取
+def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键帧提取
+    #print("camera")
     mypath = Path() #实例化路径对像
     time.sleep(0.1)# 预热摄像头
-
+    
     #初始化计数变量
     frame_count =0 #记录帧数
     start_time =None #初始化记录时间
@@ -65,8 +82,8 @@ def Camera(cap,position,Property,IOTDA):#var_threshold参数实现了关键帧�
              print("在cap循环中摄像头出现了问题")
              exit(0)
         
-        
         frame = cv2.flip(frame, 1)
+        pic.upload(frame)
         cv2.imshow("Frame", frame)# 展示该帧
         
         #等待键盘输入或者网页端输入开始
@@ -137,21 +154,6 @@ def Showimage(window_name, image):
     cv2.destroyAllWindows()
 
 
-#返回次数
-def Camera_on(aim_position,picam2,Property,IOTDA):
-
-    
-
-    mypath =Path()
-    #以frame 视频流的方式进行
-    x=Camera(picam2,aim_position,Property,IOTDA)
-    #小模型 
-    if x==0:
-        position = Nerual_Detect(mypath,aim_position)
-
-    if position =='0':
-        position ='bug'
-    return str(position)
 
 #############################一些图像的预处理################################
 #核心算法：关键帧提取
@@ -464,3 +466,6 @@ def sendobstxt():
     # 关闭obsClient
     obsClient.close()
     delete_obs_txt(local_file_path)#上传之后删除
+    
+    
+
