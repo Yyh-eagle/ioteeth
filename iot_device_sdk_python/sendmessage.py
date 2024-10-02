@@ -37,6 +37,7 @@ class control_command():
         self.start = 0
         self.restart = 0
     def getopen(self):
+        
         self.open=1
     def getstart(self):
         self.start=1

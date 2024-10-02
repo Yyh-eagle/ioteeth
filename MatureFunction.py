@@ -35,10 +35,12 @@ def position_judge(preposition,cap,Property,IOTDA,pic):
     print("this time-------------------------------------------------------------------",position)#指示当前反馈拍摄引导的位置
     position_dictionary = {'0':"初始化",'1':"牙齿正面",'2':"下牙上侧",'3':"上牙下侧",'4':'结束指令'}#反馈是拍摄引导字典
     
+    
+    
     #if int(position) == int(preposition)+1:#如果满足既定的顺序
     if str(position)!='bug':
-        print(f"{position_dictionary.get(str(position))}扫描完成，请拍摄{position_dictionary[str(int(position)+1)]}")\
-        if int(position) != int(preposition)+1:#如果满足既定的顺序
+        print(f"{position_dictionary.get(str(position))}扫描完成，请拍摄{position_dictionary[str(int(position)+1)]}")
+        
         return preposition+1
     else:#表示没有按照提示扫描
         print("位置识别错误")
@@ -435,6 +437,51 @@ def delete_obs_txt(path):
     if os.path.exists(path):
         os.remove(path)
         print("删除本地缓存成功")
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
 def sendobstxt():
     now = datetime.now()
