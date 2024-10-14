@@ -50,7 +50,7 @@ class MyMessageListener(RawMessageListener):
     """
     def on_message_received(self, message: RawMessage):
         print(message.payload)
-        print(f"receive message{RawMessage}")
+        #print(f"receive message{RawMessage}")
 
 
 class CommandSampleListener(CommandListener):

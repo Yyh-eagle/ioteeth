@@ -1,47 +1,78 @@
 import smbus
 import time
-
+#i2c连接
 bus = smbus.SMBus(1)
-
-'''
-以下为配置相关的函数和变量1169547，程序执行在最后
-'''
-
+#全局配置
 i2c_addr = 0x30   #语音识别模块地址
 date_head = 0xfd
 
+
+def Speak_out(text):
+    
+    # 参数化配置
+    READER = Reader_Type["Reader_XiaoYan"]
+    VOLUME = 2
+    ENCODING_FORMAT = EncodingFormat_Type["GB2312"]  # 使用 UTF-8 编码
+    CHIP_STATUS_IDLE = ChipStatus_Type['ChipStatus_Idle']
+    MAX_WAIT_TIME = 10  # 最大等待时间
+    SetSpeed(6)
+    try:
+        # 检查语音模块状态
+        if GetChipStatus() == CHIP_STATUS_IDLE:
+            SetReader(READER)
+            SetVolume(VOLUME)
+            Speech_text(text, ENCODING_FORMAT)
+            while GetChipStatus() != CHIP_STATUS_IDLE:
+                time.sleep(0.002)
+        else:
+            start_time = time.time()
+            while True:
+                print('等待语音模块空闲')
+                time.sleep(0.1)
+                if GetChipStatus() == CHIP_STATUS_IDLE:
+                    break
+                if time.time() - start_time > MAX_WAIT_TIME:
+                    raise TimeoutError("等待语音模块空闲超时")
+            
+            SetReader(READER)
+            SetVolume(VOLUME)
+            Speech_text(text, ENCODING_FORMAT)
+    except Exception as e:
+        print(f"Error occurred: {e}")
+     
+
+  
+#将字符发送到语音模块
 def I2C_WriteBytes(str_):
-    global i2c_addr
+    global i2c_addr#在函数中声明全局变量
     for ch in str_:
         try:
-            bus.write_byte(i2c_addr,ch)
+            bus.write_byte(i2c_addr,ch)#按每个字符ASCII码发送数据
             time.sleep(0.01)
         except:
             print("write I2C error")
-
-
-
+#编码方式，字典->映射
 EncodingFormat_Type = {
 						'GB2312':0x00,
 						'GBK':0X01,
 						'BIG5':0x02,
 						'UNICODE':0x03
 						}
+#对语言进行编码
 def Speech_text(str_,encoding_format):
-    str_ = str_.encode('gb2312')   
-    size = len(str_)+2
-    DataHead = date_head
+    str_ = str_.encode('gb2312')   #按gb2312码编码
+    size = len(str_)+2 #获取编码长度
+    DataHead = date_head 
     Length_HH = size>>8
     Length_LL = size & 0x00ff
     Commond = 0x01
     EncodingFormat = encoding_format
 
-    Date_Pack = [DataHead,Length_HH,Length_LL,Commond,EncodingFormat]
+    Date_Pack = [DataHead,Length_HH,Length_LL,Commond,EncodingFormat]#构建数据包
 
     I2C_WriteBytes(Date_Pack)
-
     I2C_WriteBytes(str_)
-
+#设置基础配置，与上方函数的唯一区别就在于上方函数可以更改encoding_format
 def SetBase(str_):
     str_ = str_.encode('gb2312')   
     size = len(str_)+2
@@ -57,7 +88,9 @@ def SetBase(str_):
     I2C_WriteBytes(Date_Pack)
 
     I2C_WriteBytes(str_)
-
+#该函数根据num构造字符串并设置基础配置
+#如num！=-1，则构造为[ch+num]
+#num = -1，则构造为[ch]
 def TextCtrl(ch,num):
     if num != -1:
         str_T = '[' + ch + str(num) + ']'
@@ -66,7 +99,7 @@ def TextCtrl(ch,num):
         str_T = '[' + ch + ']'
         SetBase(str_T)
 
-
+#获取芯片状态
 ChipStatus_Type = {
                     'ChipStatus_InitSuccessful':0x4A,#初始化成功回传
                     'ChipStatus_CorrectCommand':0x41,#收到正确的命令帧回传
@@ -90,7 +123,8 @@ def GetChipStatus():
         return Read_result
     except:
         print("I2CRead error")
-
+        
+#代码合成风格
 Style_Type = {
                 'Style_Single':0,#为 0，一字一顿的风格
                 'Style_Continue':1#为 1，正常合成
@@ -234,25 +268,4 @@ def SetRestoreDefault():
 	while GetChipStatus() != ChipStatus_Type['ChipStatus_Idle']:
 		time.sleep(0.002)
 
-
-'''
-程序执行部分，以上为配置相关的函数和字典定义
-'''
-SetReader(Reader_Type["Reader_XiaoPing"])#选择播音人晓萍
-SetVolume(10)
-Speech_text("您好",EncodingFormat_Type["GB2312"])
-
-while GetChipStatus() != ChipStatus_Type['ChipStatus_Idle']:#等待当前语句播报结束
-    time.sleep(0.1)  
-
-
-SetReader(Reader_Type["Reader_XuDuo"])#选择播音人许多
-Speech_text("欢迎使用口腔健康识别仪，爱牙护牙，从我做起",EncodingFormat_Type["GB2312"])
-
-while GetChipStatus() != ChipStatus_Type['ChipStatus_Idle']:#等待当前语句播报结束
-    time.sleep(0.1)   
-
-
-while True:
-    time.sleep(0.01)
 

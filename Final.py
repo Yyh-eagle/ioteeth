@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 #自编函数库
 from MatureFunction import position_judge,send_to_server,Delete_file,sendobstxt
+from Speech import Speak_out
+
 from iot_device_sdk_python.sendmessage import IOTEETH_MQTT
 #opencv库，用于驱动usb和图像处理
 import cv2
@@ -36,31 +38,31 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 ############################################################################################################################
-HOST = "192.168.228.58"#得到ip地址
+HOST = "192.168.206.198"#得到ip地址
 
+#保存对相机的一些设定与初始化
+def opencap():
+    cap = cv2.VideoCapture(0)#初始化相机
+    if not cap.isOpened():
+        Speak_out("相机连接出问题")
+        exit(0)
+    #设定窗口大小
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    return cap
+    
+#控制类函数
 class Position():
     def __init__(self):
         self.position = 0#初始化位置
         self.ifDelete = 0
         self.ifSend = 0
         
-
+#拍摄线程
 def take_photo(mypath,pos,IOTDA,Property):
    
     pic = pic_put()
-    cap = cv2.VideoCapture(0)#初始化相机
-    if not cap.isOpened():
-        print("无法识别到相机")
-        #Property.usb = 0
-        #Property.sendproperty(IOTDA.device)#上传属性
-        print("上传属性usb=0")
-        exit(0)
-    #Property.usb = 1
-    #Property.sendproperty(IOTDA.device)#上传属性
-    #print("摄像头正常，上传属性usb=1")
-    #print("拍摄线程启动")
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap = opencap()
     while int(pos.position) < 3: #一直到4的时候，才会退出循环，保证程序正常结束
 		
         #判断位置
@@ -71,8 +73,7 @@ def take_photo(mypath,pos,IOTDA,Property):
         if pos.position =='error':
             Property.ifcorrect=0
             Property.sendproperty(IOTDA.device)#上传是否扫描准确
-            #print("上传属性ifcorrect=0")
-            print("识别位置信息错误，重新识别")
+            Speak_out("识别位置信息错误，重新识别")
             pos.position =preposition
             Property.position=pos.position
             Property.sendproperty(IOTDA.device)#上传属性开始扫描的位置
@@ -94,63 +95,13 @@ def take_photo(mypath,pos,IOTDA,Property):
                 while(1):
                
                     if(pos.ifSend == 0):
-                        print("本次上传结束")
+                        Speak_out("本次上传结束")
                         break
                 pos.ifSend = 1
-     
-    print("line1 over$$$$$$$$$$$$$$$$$$$$$$$$")
     pic.close()
-
+#控制线程，云端交互
 def obs(mypath,pos,IOTDA,Property):
-    #print("云存储线程启动")
-    obsClient = ObsClient(
-        access_key_id='ZGCNBIRERUNYFPZY1JEW',  # 刚刚下载csv文件里面的Access Key Id
-        secret_access_key='OzM4hTiyFsOEMZiowqnoIvG2NRF8gUsAZhd4VemX',  # 刚刚下载csv文件里面的Secret Access Key
-        server='https://obs.cn-north-4.myhuaweicloud.com'# 这里的访问域名就是我们在桶的基本信息那里记下的东西
-    )
-    #使用访问OBS
-    #调用putFile接口上传对象到桶内
-    try:
-        bucketName = 'ioteeth'
-        resp = obsClient.headBucket(bucketName)
-        if resp.status < 300:
-            print('成功连接obs存储')
-            Property.obs = 1
-            #Property.sendproperty(IOTDA.device)#上传属性
-            
-        elif resp.status == 404:
-            print('桶不存在')
-            try:
-                # 创建桶的附加头域，桶的访问控制策略是私有桶，存储类型是低频访问存储，多AZ方式存储
-                header = CreateBucketHeader(aclControl="PRIVATE", storageClass="STANDARD", availableZone="3az")
-                # 指定存储桶所在区域，此处以“ap-southeast-1”为例，必须跟传入的Endpoint中Region保持一致。
-                location = "cn-north-4"
-                bucketName = "ioteeth"
-                # 创建桶
-                resp = obsClient.createBucket(bucketName, header, location)
-                # 返回码为2xx时，接口调用成功，否则接口调用失败
-                if resp.status < 300:
-                    print('创建桶成功')
-                else:
-                    print('创建桶失败')
-                    #Property.obs = 0
-                    #Property.sendproperty(IOTDA.device)#上传属性
-                    print('requestId:', resp.requestId)
-                    print('errorCode:', resp.errorCode)
-                    print('errorMessage:', resp.errorMessage)
-                    exit(0)
-            except:
-                print('创建桶失败')
-                #Property.obs = 1
-                #Property.sendproperty(IOTDA.device)#上传属性
-                print(traceback.format_exc())
-                exit(0)
-    except:
-        print('Head Bucket Failed')
-        #Property.obs = 1
-        #Property.sendproperty(IOTDA.device)#上传属性
-        print(traceback.format_exc())
-        exit(0)
+    
     ind=0
     while(1):
         if(pos.ifDelete ==1):
@@ -171,7 +122,7 @@ def obs(mypath,pos,IOTDA,Property):
             if str(pos.position) =='3':
                ind='x'
         
-    sendobstxt()
+    sendobstxt()#向云端发送目标目录
     
 
 
@@ -230,8 +181,7 @@ class pic_put():
 
 
 def main():
-    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@欢迎使用ioteeth智能口腔健康识别仪@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-    print("**********************************正在进行初始化********************************************************")
+    
     Property = IOT_property("detect")  # 实例化所有的属性
     IOTDA = IOTEETH_MQTT()#初始化了device对象
     pos =Position()
@@ -242,14 +192,9 @@ def main():
     if os.path.exists(path):
          with open(obs_txtpath, 'w', encoding='utf-8') as f:
               pass
-    
-    print("等待云端下发开启指令")
-    #while(1):
-    #    if(IOTDA.c_c.start):
-    #        IOTDA.c_c.start=0
-    #        break
-
-    
+    text ="欢迎使用牙齿健康识别仪"
+    Speak_out(text)
+  
 
     # 创建第一个线程，并指定任务函数
     thread2 = threading.Thread(target=take_photo,args=(mypath,pos,IOTDA,Property))
@@ -265,7 +210,7 @@ def main():
     thread1.join()
     thread2.join()
 
-    print("本次扫描结束，感谢使用")
+    Speak_out("本次扫描结束，感谢您的使用")
     sys.exit()
     
 main()

@@ -14,7 +14,7 @@ from obs import ObsClient
 from obs import PutObjectHeader
 from PositionDetect.util import Nerual_Detect
 from datetime import datetime
-
+from Speech import Speak_out
 """
 本文件实现的功能是保存所有在Final中出现的函数
 """
@@ -27,43 +27,50 @@ NUMTAKEPHOTOS = 7 #帧数：连读多少帧满足要求，可以提示
 NUMDIFF =8 #帧差法的帧差数，这个数越大月容易
 
 ####################################标准流程函数########################################
+def speek_guide1(position):
+    if int(position) == 1:
+        Speak_out("请将牙齿正对摄像头，开始录制")
+    elif int(position) == 2:
+        Speak_out("请将摄像头对准下牙上侧，开始录制")
+    elif int(position) ==3:
+        Speak_out("请将摄像头对准上牙下侧，开始录制")
+
 
 #反馈式拍摄引导
 def position_judge(preposition,cap,Property,IOTDA,pic):
-    #print("lalla")
+   
     position = Camera_on(str(int(preposition)+1),cap,Property,IOTDA,pic)#根据小模型的识别结果来反馈位置
-    print("this time-------------------------------------------------------------------",position)#指示当前反馈拍摄引导的位置
-    position_dictionary = {'0':"初始化",'1':"牙齿正面",'2':"下牙上侧",'3':"上牙下侧",'4':'结束指令'}#反馈是拍摄引导字典
+    
     
     
     
     #if int(position) == int(preposition)+1:#如果满足既定的顺序
     if str(position)!='bug':
-        print(f"{position_dictionary.get(str(position))}扫描完成，请拍摄{position_dictionary[str(int(position)+1)]}")
         
         return preposition+1
     else:#表示没有按照提示扫描
-        print("位置识别错误")
+        Speak_out("位置识别错误")
         return 'error'   
 
 
 #返回次数
 def Camera_on(aim_position,picam2,Property,IOTDA,pic):
-    #print("camera_o")
+    position_dictionary = {'0':"初始化",'1':"牙齿正面",'2':"下牙上侧",'3':"上牙下侧",'4':'结束指令'}#反馈是拍摄引导字典
     mypath =Path()
     #以frame 视频流的方式进行
     x=Camera(picam2,aim_position,Property,IOTDA,pic)
     #小模型 
     if x==0:
         position = Nerual_Detect(mypath,aim_position)
-
+        Speak_out(f"{position_dictionary.get(str(aim_position))}扫描完成，请拍摄{position_dictionary[str(int(aim_position)+1)]}")
     if position =='0':
         position ='bug'
     return str(position)
     
 #拍摄的核心函数，视频流，关键帧提取
 def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键帧提取
-    #print("camera")
+    
+    
     mypath = Path() #实例化路径对像
     time.sleep(0.1)# 预热摄像头
     
@@ -71,8 +78,8 @@ def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键�
     frame_count =0 #记录帧数
     start_time =None #初始化记录时间
     image_count = 0#设定的关键帧数
-
-    print("等待前端命令拍摄……")  # 开始录制
+    speek_guide1(position)
+    #Speak_out("请开始录制")  # 开始录制
     # 定义关键帧表和阈值   
     key_frames = []
     threshold = THRESHOLDDIFF #帧差法阈值
@@ -83,8 +90,8 @@ def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键�
     while True:
         value, frame = cap.read()#读取图像
         if not value:#检查图像是否成功读取
-             print("在cap循环中摄像头出现了问题")
-             exit(0)
+            Speak_out("在循环中摄像头出现了问题")
+            exit(0)
         
         frame = cv2.flip(frame, 1)
         pic.upload(frame)
@@ -96,16 +103,20 @@ def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键�
         # 等待空格键启动
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        if key==1 or k== ord(' ') :
-            print("开始录制，并进行清晰度，亮度评判，根据帧差法选择关键帧")
+        if k== ord(' ') :
+            Speak_out("开始录制")
+            start_time = time.time()
+            IOTDA.c_c.open=0#修改回open的默认值
+        if key==1 :
             start_time = time.time()
             IOTDA.c_c.open=0#修改回open的默认值
         elif key == 'out':
             exit(0)
-     
+        
         if start_time is not None:
             cnt_diff +=1
             if len(key_frames)>=NUM_KEYFRAME:# 检查是否超过三个有效的关键帧
+                Speak_out("结束录制，进行图像质量检测")
                 cv2.destroyAllWindows()
                 return 0
             #关键帧提取:首先根据运动特性进行提取，提取得到三个关键帧后进入下一个口腔位置，每个关键帧的获取都需要经过清晰度和亮度的筛选
@@ -147,9 +158,9 @@ def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键�
                         image_count += 1#更新
             if cnt_diff%NUMDIFF ==0:
                 prev_gray = gray#更新灰度图
-                #cv2.imshow("gray",prev_gray)
+               
             frame_count += 1#更新帧数，方便写入文件名称
-
+    
 
 #显示图片
 def Showimage(window_name, image):
@@ -182,7 +193,7 @@ def perfect_reflective_white_balance(img):
 
 #三级提亮图片
 def Uplight(image):
-    print("----------------------------------------三级提亮-------------------------------------------")
+    
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     img_t=cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
     h,s,v=cv2.split(img_t)
@@ -208,12 +219,11 @@ def Uplight(image):
         
         return cv2.cvtColor(img2,cv2.COLOR_HSV2BGR) 
     else:
-        print("亮度充足")
+        #print("亮度充足")
         return image
 #亮度检测
 def uplight_detect(img):
  
-    
     # 把图片转换为单通道的灰度图
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # 获取形状以及长宽
@@ -324,7 +334,7 @@ def upload_to_obs(file,local_file_path, obs_bucket, obs_object_key,now,position)
     bucketName = obs_bucket.encode('latin-1').decode('utf-8')
     objectKey = full_obs_path.encode('latin-1').decode('utf-8')
  
-    start = datetime.now()  # 用来计时
+    #start = datetime.now()  # 用来计时
 
     # 创建ObsClient实例
     obsClient = ObsClient(
@@ -354,7 +364,7 @@ def upload_to_obs(file,local_file_path, obs_bucket, obs_object_key,now,position)
 
         resp = obsClient.putFile(bucketName, objectKey, local_file_path,headers)
         if resp.status < 300:
-            print(f"图像文件{file}上传成功")
+            #print(f"图像文件{file}上传成功")
             create_obstxt(objectKey)#创建并写入文件
         else:
             print('上传失败')
@@ -362,12 +372,12 @@ def upload_to_obs(file,local_file_path, obs_bucket, obs_object_key,now,position)
             print('errorCode:', resp.errorCode)
             print('errorMessage:', resp.errorMessage)
     except:
-        print('上传失败败')
+        print('上传失败')
         print(traceback.format_exc())
     # 关闭obsClient
     obsClient.close()
-    end = datetime.now()
-    print(end - start)  # 打印出使用的总时间
+    #end = datetime.now()
+    #print(end - start)  # 打印出使用的总时间
    
 
 #向obs发送文件
@@ -395,9 +405,7 @@ def send_to_server(mypath,position,IOTDA):
 
 ########################################对本地缓存清除操作########################################
 def Delete_file(mypath,position):
-    #print("进来的position",position)
     delete_file(mypath.video_save_path(position))
-
 
 #清除缓存文件
 def delete_file(directory):
@@ -408,16 +416,16 @@ def delete_file(directory):
             if os.path.isfile(filepath):
                 # 如果是文件，则删除
                 os.remove(filepath)
-               #print(f"已删除文件: {filepath}")
+               
             elif os.path.isdir(filepath):
                 # 如果是目录，则递归调用删除目录中的文件
                 delete_file(filepath)#递归函数，直接实现所有的文件全部删除
             if not os.listdir(directory):
-                #print(f"目录 {directory} 现在为空，终止删除操作")
+               
                 return
         except Exception as e:
             print(f"删除文件 {filepath} 时出错: {e}")
-##############################下面这些代码用于上传日志控制文件，用于和AutoDL以文件的形式进行交互
+##############################下面这些代码用于上传日志控制文件，用于和AutoDL以文件的形式进行交互###############
 def create_obstxt(content):
     path="/home/yyh/ioteeth/logtxt/"
     obs_txtpath = os.path.join(path, f'obs_path.txt')
@@ -430,7 +438,7 @@ def create_obstxt(content):
     f = open(obs_txtpath, 'a', encoding='utf-8')
     f.write(f'{content}\n')
     f.close()
-    #return f'obs_path.txt',obs_txtpath
+
 
 def delete_obs_txt(path):
     print("清空本地的txt文件缓存")
