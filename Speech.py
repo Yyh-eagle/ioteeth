@@ -7,38 +7,7 @@ i2c_addr = 0x30   #语音识别模块地址
 date_head = 0xfd
 
 
-def Speak_out(text):
-    
-    # 参数化配置
-    READER = Reader_Type["Reader_XiaoYan"]
-    VOLUME = 2
-    ENCODING_FORMAT = EncodingFormat_Type["GB2312"]  # 使用 UTF-8 编码
-    CHIP_STATUS_IDLE = ChipStatus_Type['ChipStatus_Idle']
-    MAX_WAIT_TIME = 10  # 最大等待时间
-    SetSpeed(6)
-    try:
-        # 检查语音模块状态
-        if GetChipStatus() == CHIP_STATUS_IDLE:
-            SetReader(READER)
-            SetVolume(VOLUME)
-            Speech_text(text, ENCODING_FORMAT)
-            while GetChipStatus() != CHIP_STATUS_IDLE:
-                time.sleep(0.002)
-        else:
-            start_time = time.time()
-            while True:
-                print('等待语音模块空闲')
-                time.sleep(0.1)
-                if GetChipStatus() == CHIP_STATUS_IDLE:
-                    break
-                if time.time() - start_time > MAX_WAIT_TIME:
-                    raise TimeoutError("等待语音模块空闲超时")
-            
-            SetReader(READER)
-            SetVolume(VOLUME)
-            Speech_text(text, ENCODING_FORMAT)
-    except Exception as e:
-        print(f"Error occurred: {e}")
+
      
 
   
@@ -268,4 +237,32 @@ def SetRestoreDefault():
 	while GetChipStatus() != ChipStatus_Type['ChipStatus_Idle']:
 		time.sleep(0.002)
 
+READER = Reader_Type["Reader_XiaoYan"]
+VOLUME = 2
+ENCODING_FORMAT = EncodingFormat_Type["GB2312"]  
+CHIP_STATUS_IDLE = ChipStatus_Type['ChipStatus_Idle']
+SetSpeed(6)
+SetReader(READER)
+SetVolume(VOLUME)
+def Speak_out(text):
+    
+    
+    Speech_text(text, ENCODING_FORMAT)
+    while GetChipStatus() != ChipStatus_Type['ChipStatus_Idle']:
+        time.sleep(0.1)
 
+def init_speak():
+    ind = 0
+    while GetChipStatus() != ChipStatus_Type['ChipStatus_Idle']:
+        time.sleep(0.01)
+        ind +=1
+        if ind%50 == 0:
+            print('初始化中')
+
+
+# Speak_out('你好，我是小燕，欢迎使用！')
+# Speak_out("你好我是小东，欢迎你的使用")
+# Speak_out("你好我是小美，欢迎你的使用")
+# Speak_out('你好，我是小燕，欢迎使用！')
+# Speak_out("你好我是小东，欢迎你的使用")
+# Speak_out("你好我是小美，欢迎你的使用")

@@ -1,7 +1,10 @@
+
 from __future__ import absolute_import
+from datetime import datetime
+
 #自编函数库
 from MatureFunction import position_judge,send_to_server,Delete_file,sendobstxt
-from Speech import Speak_out
+from Speech import Speak_out,init_speak
 
 from iot_device_sdk_python.sendmessage import IOTEETH_MQTT
 #opencv库，用于驱动usb和图像处理
@@ -24,13 +27,7 @@ import numpy as np
 from typing import List
 import time
 import logging
-from iot_device_sdk_python.client.listener.property_listener import PropertyListener
 from iot_device_sdk_python.client.request.service_property import ServiceProperty
-from iot_device_sdk_python.client import iot_result
-from iot_device_sdk_python.client.client_conf import ClientConf
-from iot_device_sdk_python.client.connect_auth_info import ConnectAuthInfo
-from iot_device_sdk_python.client.listener.command_listener \
-import CommandListener
 from iot_device_sdk_python.iot_device import IotDevice
 from iot_device_sdk_python.client.request.command_response import CommandRsp
 logging.basicConfig(level=logging.INFO,
@@ -38,7 +35,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 ############################################################################################################################
-HOST = "192.168.206.198"#得到ip地址
+HOST = "192.168.80.198"#得到ip地址
 
 #保存对相机的一些设定与初始化
 def opencap():
@@ -192,6 +189,7 @@ def main():
     if os.path.exists(path):
          with open(obs_txtpath, 'w', encoding='utf-8') as f:
               pass
+    init_speak()
     text ="欢迎使用牙齿健康识别仪"
     Speak_out(text)
   

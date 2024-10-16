@@ -1,20 +1,21 @@
 import numpy as np
 import cv2
-
+from datetime import datetime
 import time
 import os
-
+start_time = datetime.now()
 import subprocess
 from Final_config import Path
 
 import traceback
-import threading
+
 #华为云OBS
 from obs import ObsClient
 from obs import PutObjectHeader
-from PositionDetect.util import Nerual_Detect
-from datetime import datetime
 from Speech import Speak_out
+from PositionDetect.util import Nerual_Detect #耗时10s
+
+
 """
 本文件实现的功能是保存所有在Final中出现的函数
 """
