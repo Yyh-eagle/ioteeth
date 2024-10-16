@@ -244,6 +244,17 @@ CHIP_STATUS_IDLE = ChipStatus_Type['ChipStatus_Idle']
 SetSpeed(6)
 SetReader(READER)
 SetVolume(VOLUME)
+def init_speak():
+    ind = 0
+    while 1:
+        time.sleep(0.01)
+        ind +=1
+        if ind%50 == 0:
+            print('初始化中')
+        if GetChipStatus() == ChipStatus_Type['ChipStatus_Idle']:
+            print('初始化完成')
+            break
+    
 def Speak_out(text):
     
     
@@ -251,13 +262,7 @@ def Speak_out(text):
     while GetChipStatus() != ChipStatus_Type['ChipStatus_Idle']:
         time.sleep(0.1)
 
-def init_speak():
-    ind = 0
-    while GetChipStatus() != ChipStatus_Type['ChipStatus_Idle']:
-        time.sleep(0.01)
-        ind +=1
-        if ind%50 == 0:
-            print('初始化中')
+
 
 
 # Speak_out('你好，我是小燕，欢迎使用！')

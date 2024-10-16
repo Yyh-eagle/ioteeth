@@ -30,11 +30,11 @@ NUMDIFF =8 #帧差法的帧差数，这个数越大月容易
 ####################################标准流程函数########################################
 def speek_guide1(position):
     if int(position) == 1:
-        Speak_out("请将牙齿正对摄像头，开始录制")
+        Speak_out("请录制牙齿正面")
     elif int(position) == 2:
-        Speak_out("请将摄像头对准下牙上侧，开始录制")
+        Speak_out("请录制下牙上侧")
     elif int(position) ==3:
-        Speak_out("请将摄像头对准上牙下侧，开始录制")
+        Speak_out("请录制上牙下侧")
 
 
 #反馈式拍摄引导
@@ -50,7 +50,7 @@ def position_judge(preposition,cap,Property,IOTDA,pic):
         
         return preposition+1
     else:#表示没有按照提示扫描
-        Speak_out("位置识别错误")
+        
         return 'error'   
 
 
@@ -63,7 +63,8 @@ def Camera_on(aim_position,picam2,Property,IOTDA,pic):
     #小模型 
     if x==0:
         position = Nerual_Detect(mypath,aim_position)
-        Speak_out(f"{position_dictionary.get(str(aim_position))}扫描完成，请拍摄{position_dictionary[str(int(aim_position)+1)]}")
+        #Speak_out(f"{position_dictionary.get(str(aim_position))}扫描完成，请拍摄{position_dictionary[str(int(aim_position)+1)]}")
+        Speak_out("位置识别成功")
     if position =='0':
         position ='bug'
     return str(position)

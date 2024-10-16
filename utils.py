@@ -9,6 +9,7 @@ from Final_config import Path
 #华为云OBS
 from obs import ObsClient
 from obs import PutObjectHeader
+
 from datetime import datetime
 import traceback
 def upload_to_obs(file,local_file_path, obs_object_key,now):

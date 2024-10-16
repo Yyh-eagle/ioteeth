@@ -70,7 +70,7 @@ def take_photo(mypath,pos,IOTDA,Property):
         if pos.position =='error':
             Property.ifcorrect=0
             Property.sendproperty(IOTDA.device)#上传是否扫描准确
-            Speak_out("识别位置信息错误，重新识别")
+            Speak_out("图像不符合要求，重新识别")
             pos.position =preposition
             Property.position=pos.position
             Property.sendproperty(IOTDA.device)#上传属性开始扫描的位置
