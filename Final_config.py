@@ -19,5 +19,8 @@ class Path(object):
     def spee_path(self,position):
         return f"/home/yyh/ioteeth/save_path/spee/position{position}/"
     def spee_obs_path(self,position):
-        return f'obs://ioteeth/Picture/spee/position{position}/frame{iter}.jpg'
+        return f'/Picture/spee/position{position}/'
 
+    
+    def obs_path(self,position):#华为云的存储位置
+        return f'/Picture/position{position}/'
