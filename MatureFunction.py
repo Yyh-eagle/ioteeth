@@ -321,8 +321,8 @@ def calculate_variance(image):
     
 ##################################发送云存储obs##########################################
 #向云服务器传送信息
-def upload_to_obs(file,local_file_path, obs_bucket, obs_object_key,now,position):
-    
+def upload_to_obs(file,local_file_path, obs_object_key,now):
+    obs_bucket ='ioteeth'#osb存储桶
 
     #构建文件的完整obs路径
     full_obs_path ='obs://{}{}{}/'.format(obs_bucket, obs_object_key,now)
@@ -401,7 +401,7 @@ def send_to_server(mypath,position,IOTDA):
             #为了避免多余的图像上传，每次只上传张图像
             # 上传图片文件
             
-            upload_to_obs(sorted_contrasts[i][0], file_path, obs_bucket, obs_object_key,now,position)
+            upload_to_obs(sorted_contrasts[i][0], file_path, obs_object_key,now)
 
 ########################################对本地缓存清除操作########################################
 def Delete_file(mypath,position):
@@ -445,52 +445,6 @@ def delete_obs_txt(path):
     if os.path.exists(path):
         os.remove(path)
         print("删除本地缓存成功")
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
 def sendobstxt():
     now = datetime.now()
     local_file_path='/home/yyh/ioteeth/logtxt/obs_path.txt'
