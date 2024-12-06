@@ -1,13 +1,11 @@
 
 from __future__ import absolute_import
-from datetime import datetime
 
 #自编函数库
 from MatureFunction import position_judge,send_to_server,Delete_file,sendobstxt
 from Speech import Speak_out,init_speak
-
+from webstreanubf import WebSocketVideoStreamer
 from iot_device_sdk_python.sendmessage import IOTEETH_MQTT
-#opencv库，用于驱动usb和图像处理
 import cv2
 #从配置库中引入路径配置文件
 from  Final_config import Path
@@ -19,23 +17,20 @@ import threading
 import sys
 import os
 import io
-import struct
-import socket
-import numpy as np
-##下面这些都是iotda的相关库)
 
-from typing import List
+##下面这些都是iotda的相关库)
 import time
-import logging
 from iot_device_sdk_python.client.request.service_property import ServiceProperty
 from iot_device_sdk_python.iot_device import IotDevice
 from iot_device_sdk_python.client.request.command_response import CommandRsp
+
+import logging
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(threadName)s - %(filename)s[%(funcName)s] - %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-############################################################################################################################
-HOST = "192.168.80.198"#得到ip地址
+#####################################################程序开始#####################################################################
+HOSTNAME="192.168.99.200"
 
 #保存对相机的一些设定与初始化
 def opencap():
@@ -56,15 +51,15 @@ class Position():
         self.ifSend = 0
         
 #拍摄线程
-def take_photo(mypath,pos,IOTDA,Property):
+def take_photo(mypath,pos,IOTDA,Property,streamer):
    
-    pic = pic_put()
+    
     cap = opencap()
     while int(pos.position) < 3: #一直到4的时候，才会退出循环，保证程序正常结束
 		
         #判断位置
         preposition =pos.position#用preposition保存之前的position值
-        pos.position = position_judge(preposition,cap,Property,IOTDA,pic)##################################
+        pos.position = position_judge(preposition,cap,Property,IOTDA,streamer)##################################
         Property.position=pos.position
         #一旦识别失败，提示重新扫描
         if pos.position =='error':
@@ -95,7 +90,7 @@ def take_photo(mypath,pos,IOTDA,Property):
                         Speak_out("本次上传结束")
                         break
                 pos.ifSend = 1
-    pic.close()
+    
 #控制线程，云端交互
 def obs(mypath,pos,IOTDA,Property):
     
@@ -144,37 +139,6 @@ class IOT_property():
         
         device.get_client().report_properties(services)
 #所有的部分只需要修改这里的类然后sendproperty就可以了。
-    
-######################################################无线图传####################################################################
-
-class pic_put():
-    def __init__(self):
-        self.h = HOST
-        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.client_socket.connect((self.h, 8000))  #
-        self.connection = self.client_socket.makefile('wb')
-        self.stream = io.BytesIO()
-
-    def upload(self, frame):
-        img_encode = cv2.imencode('.jpg', frame)[1]
-        data_encode = np.array(img_encode)
-        self.stream.write(data_encode)
-        self.connection.write(struct.pack('<L', self.stream.tell()))
-        self.connection.flush()
-        self.stream.seek(0)
-        self.connection.write(self.stream.read())
-        self.stream.seek(0)
-        self.stream.truncate()
-        self.connection.write(struct.pack('<L', 0))
-
-    def close(self):
-        msg = 'exit'
-        self.client_socket.send(msg.encode('utf-8'))
-        self.connection.close()
-        self.client_socket.close()
-
-           
-        
 
 
 def main():
@@ -192,10 +156,12 @@ def main():
     init_speak()
     text ="欢迎使用牙齿健康识别仪"
     Speak_out(text)
-  
+    streamer = WebSocketVideoStreamer(host=HOSTNAME, port=8188)#应用一个类
+    # 在后台线程启动 WebSocket 服务器
+    streamer.run_server_in_thread()#在后台启动这个类对应的服务器
 
     # 创建第一个线程，并指定任务函数
-    thread2 = threading.Thread(target=take_photo,args=(mypath,pos,IOTDA,Property))
+    thread2 = threading.Thread(target=take_photo,args=(mypath,pos,IOTDA,Property,streamer))
 
     # 创建第二个线程，并指定任务函数
     thread1 = threading.Thread(target=obs,args =(mypath,pos,IOTDA,Property))

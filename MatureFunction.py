@@ -20,57 +20,51 @@ from PositionDetect.util import Nerual_Detect #耗时10s
 本文件实现的功能是保存所有在Final中出现的函数
 """
 #全局变量声明，关键参数调整
-NUM_KEYFRAME = 5 #关键帧的个数
-THRESHOLDDIFF =230#帧差法的阈值
-RESOLUTION_12 = 30 #清晰度指标
-RESOLUTION_3 = 25 #清晰度指标
+NUM_KEYFRAME = 6 #关键帧的个数
+THRESHOLDDIFF =253#帧差法的阈值
+RESOLUTION_12 = 47 #清晰度指标
+RESOLUTION_3 = 47 #清晰度指标
 NUMTAKEPHOTOS = 7 #帧数：连读多少帧满足要求，可以提示
-NUMDIFF =8 #帧差法的帧差数，这个数越大月容易
+NUMDIFF =10 #帧差法的帧差数，这个数越大月容易
 
 ####################################标准流程函数########################################
 def speek_guide1(position):
     if int(position) == 1:
-        Speak_out("请录制牙齿正面")
+        Speak_out("请录制牙齿正面，查看有无缺牙异色")
     elif int(position) == 2:
-        Speak_out("请录制下牙上侧")
+        Speak_out("请录制牙齿根部，查看有无结石或牙龈红肿")
     elif int(position) ==3:
-        Speak_out("请录制上牙下侧")
+        Speak_out("请录制臼齿，查看龋齿情况")
 
 
 #反馈式拍摄引导
-def position_judge(preposition,cap,Property,IOTDA,pic):
+def position_judge(preposition,cap,Property,IOTDA,streamer):
    
-    position = Camera_on(str(int(preposition)+1),cap,Property,IOTDA,pic)#根据小模型的识别结果来反馈位置
-    
-    
-    
+    position = Camera_on(str(int(preposition)+1),cap,Property,IOTDA,streamer)#根据小模型的识别结果来反馈位置
     
     #if int(position) == int(preposition)+1:#如果满足既定的顺序
     if str(position)!='bug':
-        
         return preposition+1
     else:#表示没有按照提示扫描
-        
         return 'error'   
 
 
 #返回次数
-def Camera_on(aim_position,picam2,Property,IOTDA,pic):
-    position_dictionary = {'0':"初始化",'1':"牙齿正面",'2':"下牙上侧",'3':"上牙下侧",'4':'结束指令'}#反馈是拍摄引导字典
+def Camera_on(aim_position,picam2,Property,IOTDA,streamer):
+    
     mypath =Path()
     #以frame 视频流的方式进行
-    x=Camera(picam2,aim_position,Property,IOTDA,pic)
+    x=Camera(picam2,aim_position,Property,IOTDA,streamer)
     #小模型 
     if x==0:
         position = Nerual_Detect(mypath,aim_position)
-        #Speak_out(f"{position_dictionary.get(str(aim_position))}扫描完成，请拍摄{position_dictionary[str(int(aim_position)+1)]}")
         Speak_out("位置识别成功")
     if position =='0':
         position ='bug'
     return str(position)
     
 #拍摄的核心函数，视频流，关键帧提取
-def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键帧提取
+def Camera(cap,position,Property,IOTDA,streamer):#var_threshold参数实现了关键帧提取
     
     
     mypath = Path() #实例化路径对像
@@ -96,7 +90,7 @@ def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键�
             exit(0)
         
         frame = cv2.flip(frame, 1)
-        pic.upload(frame)
+        
         cv2.imshow("Frame", frame)# 展示该帧
         
         #等待键盘输入或者网页端输入开始
@@ -137,7 +131,7 @@ def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键�
             ifdetect = 	detect(frame,position)#清晰度和亮度指标
             
             if ifdetect != 0:#若满足清晰度和亮度指标
-                cnt_opendetect +=1#三帧都满足，则容许提示开始拍摄
+                cnt_opendetect +=1#n帧都满足，则容许提示开始拍摄
                 if cnt_opendetect >=NUMTAKEPHOTOS:
                     #上传属性，进行云通信
                     if cnt_tishi ==0 :
@@ -146,7 +140,7 @@ def Camera(cap,position,Property,IOTDA,pic):#var_threshold参数实现了关键�
                         Property.opendetect = 0
                         cnt_tishi = 1
                     if np.sum(diff_threshold) >0:# 帧差法    
-                        
+                        streamer.send_frame(frame)
                         key_frames.append(frame) #列表加上关键帧
                         cv2.namedWindow('preview') #控制展示位置
                         cv2.moveWindow('preview', 100, 900) #控制展示位置

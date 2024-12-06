@@ -7,10 +7,6 @@ i2c_addr = 0x30   #语音识别模块地址
 date_head = 0xfd
 
 
-
-     
-
-  
 #将字符发送到语音模块
 def I2C_WriteBytes(str_):
     global i2c_addr#在函数中声明全局变量
@@ -241,7 +237,7 @@ READER = Reader_Type["Reader_XiaoYan"]
 VOLUME = 2
 ENCODING_FORMAT = EncodingFormat_Type["GB2312"]  
 CHIP_STATUS_IDLE = ChipStatus_Type['ChipStatus_Idle']
-SetSpeed(6)
+SetSpeed(4)
 SetReader(READER)
 SetVolume(VOLUME)
 def init_speak():
@@ -256,18 +252,34 @@ def init_speak():
             break
     
 def Speak_out(text):
-    
-    
-    Speech_text(text, ENCODING_FORMAT)
-    while GetChipStatus() != ChipStatus_Type['ChipStatus_Idle']:
-        time.sleep(0.1)
+    try:
+        Speech_text(text, ENCODING_FORMAT)
+    except Exception as e:
+        print(f"Error in Speech_text: {e}")
+        return
+
+    start_time = time.time()
+    max_wait_time = 10  # 设置最大等待时间为10秒
+    sleep_time = 0.1  # 初始睡眠时间
+    max_sleep_time = 1.0  # 最大睡眠时间
+
+    while True:
+        try:
+            status = GetChipStatus()
+        except Exception as e:
+            print(f"Error in GetChipStatus: {e}")
+            break
+
+        if status == ChipStatus_Type['ChipStatus_Idle']:
+            break
+
+        elapsed_time = time.time() - start_time
+        if elapsed_time > max_wait_time:
+            print("Timeout waiting for ChipStatus_Idle")
+            break
+
+        time.sleep(sleep_time)
+        sleep_time = min(sleep_time * 2, max_sleep_time)  # 指数退避策略
 
 
 
-
-# Speak_out('你好，我是小燕，欢迎使用！')
-# Speak_out("你好我是小东，欢迎你的使用")
-# Speak_out("你好我是小美，欢迎你的使用")
-# Speak_out('你好，我是小燕，欢迎使用！')
-# Speak_out("你好我是小东，欢迎你的使用")
-# Speak_out("你好我是小美，欢迎你的使用")
